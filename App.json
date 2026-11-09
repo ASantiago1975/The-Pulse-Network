@@ -25,6 +25,15 @@
         "foregroundImage": "./assets/my-logo.png",
         "backgroundColor": "#09090B"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.thepulsenetwork.sovereignapp",
+      "buildNumber": "1.0.0",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "The Pulse Network requires access to your fine location to map your intent broadcasts onto local proximity geohash cells securely without server tracking footprints.",
+        "NSFaceIDUsageDescription": "The Pulse Network utilizes native FaceID biometric authentication to verify owner presence and lock down the secure Developer Administration Console against unauthorized scripts."
+      }
     }
   }
 }
