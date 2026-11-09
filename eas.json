@@ -1,0 +1,15 @@
+{
+  "cli": { "version": ">= 9.0.0" },
+  "build": {
+    "production": {
+      "android": { "buildType": "app-bundle" }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}
