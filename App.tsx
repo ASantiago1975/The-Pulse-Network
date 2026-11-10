@@ -1,11 +1,12 @@
-// App.tsx - The Pulse Network Unified Cross-Platform System Core
+// App.tsx - The Pulse Network Sovereign Engine Compliant with Expo SDK 58
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, Clipboard, ScrollView, TextInput, Alert, Platform } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard'; // Updated Expo SDK 58 clipboard interaction package
 import * as LocalAuthentication from 'expo-local-authentication';
+import QRCode from 'react-native-qrcode-svg';
 import PulseLogo from './PulseLogo';
 
-const USER_AGREEMENT_TEXT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS OF SERVICE
+const LEGAL_USER_AGREEMENT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS OF SERVICE
 
 1. DECENTRALIZED INTERFACE INDEMNIFICATION
 The Pulse Network operates strictly as a neutral, decentralized client software interface utilizing peer-to-peer communication routing over open protocols. By finalizing registration, the User explicitly confirms that all spatial intent broadcasts and financial contracts occur strictly within User-to-User bounds. The network architecture and developer maintain zero custodial access or oversight over these processing fields. The User holds the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from user-to-user agreements.
@@ -18,16 +19,15 @@ export default function App() {
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
   
-  const [invoice, setInvoice] = useState<string>('https://paypal.com');
-  const [amountFiat] = useState<number>(100.00); // Base Transaction Value: $100.00 USD
+  const [invoice] = useState<string>('https://paypal.com');
+  const [amountFiat] = useState<number>(100.00);
   const [loading, setLoading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
 
-  // Financial Surcharge and Profit Calculations
   const [feeBreakdown, setFeeBreakdown] = useState({
     baseAmount: 100.00,
-    developerNetProfit: 3.00,      // Un-alterable 3% platform fee margin
-    processorSurcharge: 4.20,      // Offsets third-party processing drag completely
+    developerNetProfit: 3.00,      
+    processorSurcharge: 4.20,      
     grossTotalChargedToUser: 107.20
   });
 
@@ -35,12 +35,10 @@ export default function App() {
     totalEcosystemFloatUSD: 4500000,
     annualizedYieldRate: 4.5,
     accumulatedYieldUSD: 1245.80,
-    developerNetProfitSats: 1500
   });
 
   const [devProfile, setDevProfile] = useState({
     corporateEntity: "The Pulse Network LLC",
-    description: "The Pulse Network operates as an advanced decentralized spatial intent processing layout. Built on asset-sovereign models, it features an integrated Sovereign Trust treasury framework that programmatically sweeps cash float parameters into low-risk tokenized short-term U.S. Debt securities, collecting yield margins directly into developer console custody rails with zero external middle-fee drag.",
     einNumber: "12-3456789",
     dunsNumber: "012345678"
   });
@@ -51,15 +49,12 @@ export default function App() {
   useEffect(() => {
     const devProfit = amountFiat * 0.03;
     const surcharge = amountFiat * 0.042;
-    const grossTotal = amountFiat + devProfit + surcharge;
-
     setFeeBreakdown({
       baseAmount: amountFiat,
       developerNetProfit: devProfit,
       processorSurcharge: surcharge,
-      grossTotalChargedToUser: grossTotal
+      grossTotalChargedToUser: amountFiat + devProfit + surcharge
     });
-    setInvoice(`https://paypal.com{grossTotal.toFixed(2)}`);
   }, [amountFiat]);
 
   const handleUserSignUp = () => {
@@ -68,7 +63,7 @@ export default function App() {
       return;
     }
     setIsRegistered(true);
-    Alert.alert("Account Matrix Online", `Sovereign local profile generated on-device via ${Platform.OS === 'ios' ? 'Apple iOS' : 'Android'} frameworks.`);
+    Alert.alert("Account Matrix Online", `Sovereign profile active on SDK 58 (${Platform.OS === 'ios' ? 'Apple iOS' : 'Android'}).`);
   };
 
   const handleSecureConsoleUnlock = async () => {
@@ -76,7 +71,7 @@ export default function App() {
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
     if (!hasHardwareSupport || !isEnrolled) {
-      Alert.alert("Security Restriction", `Biometric verification (${Platform.OS === 'ios' ? 'FaceID/TouchID' : 'Fingerprint Enclave'}) is unconfigured on this phone terminal.`);
+      Alert.alert("Security Restriction", "Biometric verification is unconfigured on this phone terminal.");
       return;
     }
 
@@ -103,16 +98,17 @@ export default function App() {
     Alert.alert("Console Sync", "Corporate database records updated safely. Financial balances remain isolated.");
   };
 
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert("Copied", "Secure check-out string copied to local phone memory clipboard.");
+  };
+
   useEffect(() => {
     if (!isRegistered) return;
     const yieldInterval = setInterval(() => {
       setTreasury(prev => {
-        const rateDecimal = prev.annualizedYieldRate / 100;
-        const yieldPerSecond = (prev.totalEcosystemFloatUSD * rateDecimal) / (365 * 24 * 3600);
-        return {
-          ...prev,
-          accumulatedYieldUSD: prev.accumulatedYieldUSD + yieldPerSecond
-        };
+        const yieldPerSecond = (prev.totalEcosystemFloatUSD * (prev.annualizedYieldRate / 100)) / (365 * 24 * 3600);
+        return { ...prev, accumulatedYieldUSD: prev.accumulatedYieldUSD + yieldPerSecond };
       });
     }, 1000);
     return () => clearInterval(yieldInterval);
@@ -124,13 +120,13 @@ export default function App() {
         <View style={styles.registrationContainer}>
           <PulseLogo size={76} />
           <Text style={styles.registrationTitle}>The Pulse Network</Text>
-          <Text style={styles.registrationSubtitle}>Cross-Platform Protocol Node Registry</Text>
+          <Text style={styles.registrationSubtitle}>Cross-Platform SDK 58 Node Registry</Text>
           <ScrollView style={styles.legalScrollView} nestedScrollEnabled={true}>
             <Text style={styles.legalBodyText}>{LEGAL_USER_AGREEMENT}</Text>
           </ScrollView>
           <TouchableOpacity style={[styles.checkboxRow, hasAcceptedTerms && styles.checkboxActive]} onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}>
             <Text style={styles.checkboxText}>
-              {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER FULLY INDEMNIFIED" : "☐ Click to read and accept terms & legal conditions"}
+              {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED" : "☐ Click to read and accept terms & legal conditions"}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.signUpButton} onPress={handleUserSignUp}>
@@ -171,7 +167,7 @@ export default function App() {
               <Text style={styles.feeText}>Network Clearing Cost (User Surcharge): ${feeBreakdown.processorSurcharge.toFixed(2)}</Text>
               <Text style={styles.devFeeText}>Developer Platform Net Dividend (3% Cut): +${feeBreakdown.developerNetProfit.toFixed(2)} Net Profit</Text>
             </View>
-            <TouchableOpacity style={styles.actionButton} onPress={() => Clipboard.setString(invoice)}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => copyToClipboard(invoice)}>
               <Text style={styles.actionButtonText}>Copy Secure Settlement Address</Text>
             </TouchableOpacity>
           </View>
@@ -183,3 +179,11 @@ export default function App() {
             <Text style={styles.mainBalance}>${treasury.accumulatedYieldUSD.toFixed(4)}</Text>
             <Text style={styles.yieldLabel}>💎 Live Compounding Treasury Float Yield</Text>
             <View style={styles.statsContainer}>
+              <View style={styles.statRow}><Text style={styles.statKey}>Total Float Capital Pool:</Text><Text style={styles.statValue}>${treasury.totalEcosystemFloatUSD.toLocaleString()}</Text></View>
+              <View style={styles.statRow}><Text style={styles.statKey}>Ecosystem Return Capture:</Text><Text style={styles.statValueHost}>{treasury.annualizedYieldRate}% APY</Text></View>
+              <View style={styles.statRow}><Text style={styles.statKey}>SDK Architecture Version:</Text><Text style={styles.statValueSecured}>SDK 58 (Active)</Text></View>
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'CONSOLE' && isConsoleUnlocked && (
