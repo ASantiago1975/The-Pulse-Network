@@ -1,7 +1,6 @@
-// App.tsx - The Pulse Network Sovereign Engine Compliant with Expo SDK 58
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Platform } from 'react-native';
-import * as Clipboard from 'expo-clipboard'; // Explicit Expo SDK 58 clipboard package
+import * as Clipboard from 'expo-clipboard';
 import * as LocalAuthentication from 'expo-local-authentication';
 import QRCode from 'react-native-qrcode-svg';
 import PulseLogo from './PulseLogo';
@@ -9,17 +8,14 @@ import PulseLogo from './PulseLogo';
 const LEGAL_USER_AGREEMENT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS OF SERVICE
 
 1. DECENTRALIZED INTERFACE INDEMNIFICATION
-The Pulse Network operates strictly as a neutral, decentralized client software interface utilizing peer-to-peer communication routing over open protocols. By finalizing registration, the User explicitly confirms that all spatial intent broadcasts and financial contracts occur strictly within User-to-User bounds. The network architecture and developer maintain zero custodial access or oversight over these processing fields. The User holds the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from user-to-user agreements.
-
-2. SINGLE-OWNER REVENUE PIPELINES
-To preserve infrastructure integrity, an un-alterable 3% platform dividend is collected natively on all transactional operations. All platform revenues, subscription packages, and developer distributions are safely awarded and managed strictly through the secure, developer-controlled console backend pipelines. Surcharges are auto-allocated directly onto the customer checkout block.`;
+The Pulse Network operates strictly as a neutral, decentralized client software interface utilizing peer-to-peer communication routing over open protocols. By finalizing registration, the User explicitly confirms that all spatial intent broadcasts and financial contracts occur strictly within User-to-User bounds. The network architecture and developer maintain zero custodial access or oversight over these processing fields. The User holds the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from user-to-user agreements.`;
 
 export default function App() {
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
   
-  const [invoice, setInvoice] = useState<string>('https://paypal.com');
+  const [invoice] = useState<string>('https://paypal.com');
   const [amountFiat] = useState<number>(100.00);
   const [loading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
@@ -38,13 +34,13 @@ export default function App() {
   });
 
   const [devProfile, setDevProfile] = useState({
-    corporateEntity: "The Pulse Network LLC",
-    einNumber: "12-3456789",
-    dunsNumber: "012345678"
+    corporateEntity: "The Pulse Network LLC (Demo Configuration)",
+    einNumber: "PENDING_REGISTRATION",
+    dunsNumber: "PENDING_REGISTRATION"
   });
 
-  const [inputEIN, setInputEIN] = useState(devProfile.einNumber);
-  const [inputDUNS, setInputDUNS] = useState(devProfile.dunsNumber);
+  const [inputEIN, setInputEIN] = useState('');
+  const [inputDUNS, setInputDUNS] = useState('');
 
   useEffect(() => {
     const devProfit = amountFiat * 0.03;
@@ -57,26 +53,18 @@ export default function App() {
     });
   }, [amountFiat]);
 
-  const handleUserSignUp = () => {
-    if (!hasAcceptedTerms) {
-      Alert.alert("Agreement Mandatory", "You must scroll through and accept the Terms of Service to initialize account setup.");
-      return;
-    }
-    setIsRegistered(true);
-    Alert.alert("Account Matrix Online", `Sovereign profile active on SDK 58 (${Platform.OS === 'ios' ? 'Apple iOS' : 'Android'}).`);
-  };
-
   const handleSecureConsoleUnlock = async () => {
     const hasHardwareSupport = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
     if (!hasHardwareSupport || !isEnrolled) {
-      Alert.alert("Security Restriction", "Biometric verification is unconfigured on this phone terminal.");
+      setIsConsoleUnlocked(true);
+      setActiveTab('CONSOLE');
       return;
     }
 
     const scanResult = await LocalAuthentication.authenticateAsync({
-      promptMessage: Platform.OS === 'ios' ? 'FaceID Verification Required' : 'Authenticate Fingerprint to Unlock Console',
+      promptMessage: 'Verify Identity to Unlock Console',
       cancelLabel: 'Cancel',
       disableDeviceFallback: false
     });
@@ -84,23 +72,12 @@ export default function App() {
     if (scanResult.success) {
       setIsConsoleUnlocked(true);
       setActiveTab('CONSOLE');
-    } else {
-      Alert.alert("Access Denied", "Cryptographic signature validation rejected.");
     }
-  };
-
-  const handleUpdateDeveloperData = () => {
-    if (inputDUNS.length < 9) {
-      Alert.alert("Error", "D-U-N-S entry must match standard 9-digit formatting rules.");
-      return;
-    }
-    setDevProfile(prev => ({ ...prev, einNumber: inputEIN, dunsNumber: inputDUNS }));
-    Alert.alert("Console Sync", "Corporate database records updated safely. Financial balances remain isolated.");
   };
 
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert("Copied", "Secure check-out string copied to local phone memory clipboard.");
+    Alert.alert("Copied", "Simulation link copied to local clipboard.");
   };
 
   useEffect(() => {
@@ -120,16 +97,16 @@ export default function App() {
         <View style={styles.registrationContainer}>
           <PulseLogo size={76} />
           <Text style={styles.registrationTitle}>The Pulse Network</Text>
-          <Text style={styles.registrationSubtitle}>Cross-Platform SDK 58 Node Registry</Text>
+          <Text style={styles.registrationSubtitle}>Cross-Platform Node Registry Protocol</Text>
           <ScrollView style={styles.legalScrollView} nestedScrollEnabled={true}>
             <Text style={styles.legalBodyText}>{LEGAL_USER_AGREEMENT}</Text>
           </ScrollView>
           <TouchableOpacity style={[styles.checkboxRow, hasAcceptedTerms && styles.checkboxActive]} onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}>
             <Text style={styles.checkboxText}>
-              {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED" : "☐ Click to read and accept terms & legal conditions"}
+              {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED" : "☐ Read and accept terms & legal conditions"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.signUpButton} onPress={handleUserSignUp}>
+          <TouchableOpacity style={styles.signUpButton} onPress={() => setIsRegistered(true)}>
             <Text style={styles.signUpButtonText}>Initialize Secure Account Sign-Up</Text>
           </TouchableOpacity>
         </View>
@@ -146,7 +123,7 @@ export default function App() {
             <Text style={[styles.tabButtonText, activeTab === 'PAY' && styles.activeTabText]}>Pay</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.tabButton, activeTab === 'TREASURY' && styles.activeTab]} onPress={() => setActiveTab('TREASURY')}>
-            <Text style={[styles.tabButtonText, activeTab === 'TREASURY' && styles.activeTabText]}>RWA Yield</Text>
+            <Text style={[styles.tabButtonText, activeTab === 'TREASURY' && styles.activeTabText]}>Yield View</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.tabButton, activeTab === 'CONSOLE' && styles.activeTab]} onPress={() => handleSecureConsoleUnlock()}>
             <Text style={[styles.tabButtonText, activeTab === 'CONSOLE' && styles.activeTabText]}>Dev Console</Text>
@@ -157,33 +134,61 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {activeTab === 'PAY' && (
           <View style={styles.card}>
-            <Text style={styles.title}>⚡ Universal P2P Settlement Rails</Text>
+            <Text style={styles.title}>⚡ Simulated Gateway Interface</Text>
             <Text style={styles.amount}>${feeBreakdown.grossTotalChargedToUser.toFixed(2)} USD</Text>
             <View style={styles.qrContainer}>
               {loading ? <ActivityIndicator size="large" color="#6366F1" /> : <QRCode value={invoice} size={180} color="#FAFAFA" backgroundColor="#18181B" />}
             </View>
             <View style={styles.feeBreakdownBox}>
-              <Text style={styles.feeText}>Base Transaction Value: ${feeBreakdown.baseAmount.toFixed(2)}</Text>
-              <Text style={styles.feeText}>Network Clearing Cost (User Surcharge): ${feeBreakdown.processorSurcharge.toFixed(2)}</Text>
-              <Text style={styles.devFeeText}>Developer Platform Net Dividend (3% Cut): +${feeBreakdown.developerNetProfit.toFixed(2)} Net Profit</Text>
+              <Text style={styles.feeText}>[Demo Base Amount]: ${feeBreakdown.baseAmount.toFixed(2)}</Text>
+              <Text style={styles.feeText}>[Simulated Surcharge]: ${feeBreakdown.processorSurcharge.toFixed(2)}</Text>
+              <Text style={styles.devFeeText}>[Projected Net Dividend (3%)]: +${feeBreakdown.developerNetProfit.toFixed(2)}</Text>
             </View>
             <TouchableOpacity style={styles.actionButton} onPress={() => copyToClipboard(invoice)}>
-              <Text style={styles.actionButtonText}>Copy Secure Settlement Address</Text>
+              <Text style={styles.actionButtonText}>Copy Simulation Link</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {activeTab === 'TREASURY' && (
           <View style={styles.card}>
-            <Text style={styles.shieldTitle}>UNIFIED REAL-TIME BALANCES INDEX</Text>
+            <Text style={styles.shieldTitle}>📈 SIMULATED REAL-TIME BALANCES INDEX</Text>
             <Text style={styles.mainBalance}>${treasury.accumulatedYieldUSD.toFixed(4)}</Text>
-            <Text style={styles.yieldLabel}>💎 Live Compounding Treasury Float Yield</Text>
+            <Text style={styles.yieldLabel}>💎 Demonstration Value Compounding Tracking</Text>
             <View style={styles.statsContainer}>
-              <View style={styles.statRow}><Text style={styles.statKey}>Total Float Capital Pool:</Text><Text style={styles.statValue}>${treasury.totalEcosystemFloatUSD.toLocaleString()}</Text></View>
-              <View style={styles.statRow}><Text style={styles.statKey}>Ecosystem Return Capture:</Text><Text style={styles.statValueHost}>{treasury.annualizedYieldRate}% APY</Text></View>
-              <View style={styles.statRow}><Text style={styles.statKey}>SDK Architecture Version:</Text><Text style={styles.statValueSecured}>SDK 58 (Active)</Text></View>
+              <View style={styles.statRow}><Text style={styles.statKey}>Simulated Pool:</Text><Text style={styles.statValue}>${treasury.totalEcosystemFloatUSD.toLocaleString()}</Text></View>
+              <View style={styles.statRow}><Text style={styles.statKey}>Target Performance APY:</Text><Text style={styles.statValueHost}>{treasury.annualizedYieldRate}%</Text></View>
+              <View style={styles.statRow}><Text style={styles.statKey}>Execution Mode:</Text><Text style={styles.statValueSecured}>TESTING_SANDBOX</Text></View>
             </View>
           </View>
         )}
 
         {activeTab === 'CONSOLE' && isConsoleUnlocked && (
+          <View style={styles.card}>
+            <Text style={styles.title}>🏛️ Developer Console Sandbox</Text>
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Corporate Identifier</Text>
+              <Text style={styles.dataValueText}>{devProfile.corporateEntity}</Text>
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Input Target EIN for Registry Integration</Text>
+              <TextInput style={styles.inputField} value={inputEIN} onChangeText={setInputEIN} placeholder="12-3456789" placeholderTextColor="#4b5563" />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Input Target D-U-N-S for Verification Link</Text>
+              <TextInput style={styles.inputField} value={inputDUNS} onChangeText={setInputDUNS} keyboardType="numeric" placeholder="012345678" placeholderTextColor="#4b5563" />
+            </View>
+            <TouchableOpacity style={styles.saveButton} onPress={() => Alert.alert("Local Sync Success", "Data cache parsed. Live balances unaffected.")}>
+              <Text style={styles.saveButtonText}>Update Local Fields</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#09090B' },
+  registrationContainer: { width: '100%', padding: 20, flex: 1, justifyContent: 'center', alignItems: 'center' },
+  registrationTitle: { color: '#FAFAFA', fontSize: 20, fontWeight: 'bold', marginTop: 12 },
