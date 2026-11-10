@@ -1,7 +1,7 @@
 // App.tsx - The Pulse Network Sovereign Engine Compliant with Expo SDK 58
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Platform } from 'react-native';
-import * as Clipboard from 'expo-clipboard'; // Updated Expo SDK 58 clipboard interaction package
+import * as Clipboard from 'expo-clipboard'; // Explicit Expo SDK 58 clipboard package
 import * as LocalAuthentication from 'expo-local-authentication';
 import QRCode from 'react-native-qrcode-svg';
 import PulseLogo from './PulseLogo';
@@ -19,9 +19,9 @@ export default function App() {
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
   
-  const [invoice] = useState<string>('https://paypal.com');
+  const [invoice, setInvoice] = useState<string>('https://paypal.com');
   const [amountFiat] = useState<number>(100.00);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
 
   const [feeBreakdown, setFeeBreakdown] = useState({
