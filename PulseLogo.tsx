@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Image, StyleSheet, Platform } from 'react-native';
 
+const logoAsset = require('./my-logo.png');
+
 interface LogoProps {
   size?: number;
 }
@@ -9,10 +11,11 @@ export default function PulseLogo({ size = 200 }: LogoProps) {
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Image
-        source={require('./my-logo.png')} // Fixed: Path corrected to reference root repository location directly
+        source={logoAsset}
+        accessibilityLabel="The Pulse Network Logo"
         style={[
           styles.image,
-          Platform.OS === 'ios' && styles.iosShadow
+          Platform.OS === 'ios' && styles.iosShadow,
         ]}
         resizeMode="contain"
       />
@@ -35,5 +38,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-  }
+  },
 });

@@ -1,4 +1,4 @@
-// exportLedger.ts - Cross-Platform Relational Local CSV Revenue Exporter
+// exportLedger.ts - Cross-Platform Bitcoin Lightning Local CSV Revenue Exporter
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type LedgerDataType = 'LOCAL_STORED' | 'SIMULATED_DEMO';
@@ -7,7 +7,7 @@ export interface LiveRevenueRow {
   txId: string;
   grossAmountUSD: number;
   developerProfitUSD: number;
-  paymentRail: string;
+  paymentRail: 'BITCOIN_LIGHTNING' | 'BITCOIN_LIGHTNING_DEMO';
   timestamp: string;
   dataType?: LedgerDataType;
 }
@@ -23,8 +23,8 @@ export class ProductionLedgerExporter {
   private readonly STORAGE_KEY = '@ThePulseNetwork:RevenueLedger';
 
   /**
-   * Compiles on-device data tables into a standardized CSV matrix string
-   * when explicitly invoked by a user or developer console action.
+   * Compiles on-device developer console dividend records into a standardized CSV string
+   * when explicitly invoked by a developer console action.
    */
   async exportRevenueLogToCSV(): Promise<ExportResult> {
     try {
@@ -35,27 +35,27 @@ export class ProductionLedgerExporter {
         ? (JSON.parse(serializedData) as LiveRevenueRow[])
         : [
             {
-              txId: 'TX_PULSE_SIM_001',
+              txId: 'TX_PULSE_LN_SIM_001',
               grossAmountUSD: 107.2,
               developerProfitUSD: 3.0,
-              paymentRail: 'PAYPAL_BUSINESS_DEMO',
-              timestamp: '2026-11-10T02:14:00Z',
+              paymentRail: 'BITCOIN_LIGHTNING_DEMO',
+              timestamp: '2026-11-11T02:14:00Z',
               dataType: 'SIMULATED_DEMO',
             },
             {
-              txId: 'TX_PULSE_SIM_002',
+              txId: 'TX_PULSE_LN_SIM_002',
               grossAmountUSD: 250.0,
               developerProfitUSD: 7.5,
-              paymentRail: 'AMAZON_BUSINESS_DEMO',
-              timestamp: '2026-11-10T03:45:12Z',
+              paymentRail: 'BITCOIN_LIGHTNING_DEMO',
+              timestamp: '2026-11-11T03:45:12Z',
               dataType: 'SIMULATED_DEMO',
             },
             {
-              txId: 'TX_PULSE_SIM_003',
+              txId: 'TX_PULSE_LN_SIM_003',
               grossAmountUSD: 15.5,
               developerProfitUSD: 0.46,
               paymentRail: 'BITCOIN_LIGHTNING_DEMO',
-              timestamp: '2026-11-10T04:01:55Z',
+              timestamp: '2026-11-11T04:01:55Z',
               dataType: 'SIMULATED_DEMO',
             },
           ];
@@ -73,8 +73,8 @@ export class ProductionLedgerExporter {
 
       const csvOutput = `${header}${rows}\n`;
       const modeLabel = hasStoredLedger
-        ? 'local stored records'
-        : 'simulated demo rows (no stored transactions found)';
+        ? 'local stored Bitcoin Lightning records'
+        : 'simulated Bitcoin Lightning demo rows (no stored transactions found)';
 
       return {
         success: true,

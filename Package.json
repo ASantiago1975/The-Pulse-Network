@@ -1,0 +1,33 @@
+{
+  "name": "the-pulse-network",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "verify:mesh": "node verifyProductionMesh.js",
+    "build:android": "eas build --platform android --profile production",
+    "build:ios": "eas build --platform ios --profile production"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~54.0.0",
+    "expo-clipboard": "~8.0.0",
+    "expo-local-authentication": "~17.0.0",
+    "expo-status-bar": "~3.0.0",
+    "nostr-tools": "^2.10.4",
+    "react": "19.1.0",
+    "react-native": "0.81.4",
+    "react-native-qrcode-svg": "^6.3.15",
+    "react-native-svg": "15.12.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/react": "~19.1.10",
+    "typescript": "~5.8.3",
+    "ws": "^8.18.0"
+  }
+}

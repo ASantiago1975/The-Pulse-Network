@@ -11,6 +11,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import * as LocalAuthentication from 'expo-local-authentication';
 import QRCode from 'react-native-qrcode-svg';
@@ -19,29 +20,55 @@ import { ledgerExporter } from './exportLedger';
 
 const LEGAL_USER_AGREEMENT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS OF SERVICE
 
-1. DECENTRALIZED INTERFACE INDEMNIFICATION
-The Pulse Network operates strictly as a neutral, decentralized client software interface utilizing peer-to-peer communication routing over open protocols. By finalizing registration, the User explicitly confirms that all spatial intent broadcasts and financial contracts occur strictly within User-to-User bounds. The network architecture and developer maintain zero custodial access or oversight over these processing fields. The User holds the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from user-to-user agreements.`;
+1. NON-CUSTODIAL PEER-TO-PEER ARCHITECTURE
+The Pulse Network operates strictly as a neutral, non-custodial client software interface routing direct Bitcoin Lightning peer-to-peer transfers. All user funds, receiving addresses, and external banking off-ramp selections remain private to the individual user on their own device. Neither the network nor the developer ever holds, pools, or accesses user capital.
 
-const PAYPAL_BUSINESS_HANDLE = 'YourBusinessHandle';
+2. DEVELOPER PLATFORM DIVIDEND
+A 3.0% network protocol fee routes independently to the Developer Console's designated Lightning destination. Users hold the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from peer-to-peer agreements.`;
+
+const USER_PROFILE_KEY = '@ThePulseNetwork:UserPrivateProfile';
+const DEV_CONSOLE_KEY = '@ThePulseNetwork:DevConsoleConfig';
+const LEDGER_STORAGE_KEY = '@ThePulseNetwork:RevenueLedger';
 
 export default function App() {
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
 
+  // Private User P2P State (Stored locally on user's device only)
+  const [userLightningAddress, setUserLightningAddress] = useState<string>('');
+  const [userPreferredBank, setUserPreferredBank] = useState<string>('');
+  const [peerRecipientAddress, setPeerRecipientAddress] = useState<string>('');
   const [amountInput, setAmountInput] = useState<string>('100.00');
-  const [invoice, setInvoice] = useState<string>(
-    `https://paypal.com{PAYPAL_BUSINESS_HANDLE}/107.20`
-  );
-  const [loading] = useState<boolean>(false);
+  const [settlementMode, setSettlementMode] = useState<'PEER' | 'FEE'>('PEER');
+
+  // Biometric-Locked Developer Console State (Isolated from User Data)
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
+  const [devProfile, setDevProfile] = useState({
+    corporateEntity: 'The Pulse Network LLC',
+    einNumber: 'PENDING_REGISTRATION',
+    dunsNumber: 'PENDING_REGISTRATION',
+    devLightningAddress: 'developer@thepulsenetwork.com',
+    devOffRampBank: 'Corporate LLC Checking (Private)',
+  });
+
+  const [inputEIN, setInputEIN] = useState('');
+  const [inputDUNS, setInputDUNS] = useState('');
+  const [inputDevLightning, setInputDevLightning] = useState('');
+  const [inputDevBank, setInputDevBank] = useState('');
   const [csvPreview, setCsvPreview] = useState<string>('');
+  const [loading] = useState<boolean>(false);
+
+  // Reference BTC/USD conversion rate for satoshi display
+  const BTC_USD_REFERENCE = 90000;
 
   const [feeBreakdown, setFeeBreakdown] = useState({
     baseAmount: 100.0,
     developerNetProfit: 3.0,
-    processorSurcharge: 4.2,
-    grossTotalChargedToUser: 107.2,
+    routingSurcharge: 4.2,
+    grossTotalUSD: 107.2,
+    peerSats: 111111,
+    devFeeSats: 3333,
   });
 
   const [treasury, setTreasury] = useState({
@@ -50,15 +77,28 @@ export default function App() {
     accumulatedYieldUSD: 1245.8,
   });
 
-  const [devProfile, setDevProfile] = useState({
-    corporateEntity: 'The Pulse Network LLC',
-    einNumber: 'PENDING_REGISTRATION',
-    dunsNumber: 'PENDING_REGISTRATION',
-  });
+  // Load saved local profiles on startup
+  useEffect(() => {
+    const loadSavedProfiles = async () => {
+      try {
+        const savedUser = await AsyncStorage.getItem(USER_PROFILE_KEY);
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setUserLightningAddress(parsedUser.lightningAddress || '');
+          setUserPreferredBank(parsedUser.preferredBank || '');
+        }
+        const savedDev = await AsyncStorage.getItem(DEV_CONSOLE_KEY);
+        if (savedDev) {
+          setDevProfile((prev) => ({ ...prev, ...JSON.parse(savedDev) }));
+        }
+      } catch {
+        // Ignore storage read errors on initial boot
+      }
+    };
+    loadSavedProfiles();
+  }, []);
 
-  const [inputEIN, setInputEIN] = useState('');
-  const [inputDUNS, setInputDUNS] = useState('');
-
+  // Recalculate P2P and Developer Dividend splits dynamically
   useEffect(() => {
     const parsedBase = parseFloat(amountInput);
     const validBase = Number.isFinite(parsedBase) && parsedBase > 0 ? parsedBase : 0;
@@ -66,19 +106,25 @@ export default function App() {
     const surcharge = validBase * 0.042;
     const grossTotal = validBase + devProfit + surcharge;
 
+    const peerSats = Math.round((validBase / BTC_USD_REFERENCE) * 100_000_000);
+    const devFeeSats = Math.round((devProfit / BTC_USD_REFERENCE) * 100_000_000);
+
     setFeeBreakdown({
       baseAmount: validBase,
       developerNetProfit: devProfit,
-      processorSurcharge: surcharge,
-      grossTotalChargedToUser: grossTotal,
+      routingSurcharge: surcharge,
+      grossTotalUSD: grossTotal,
+      peerSats,
+      devFeeSats,
     });
-
-    setInvoice(
-      grossTotal > 0
-        ? `https://paypal.com{PAYPAL_BUSINESS_HANDLE}/${grossTotal.toFixed(2)}`
-        : `https://paypal.com{PAYPAL_BUSINESS_HANDLE}`
-    );
   }, [amountInput]);
+
+  const activeLightningTarget =
+    settlementMode === 'PEER'
+      ? peerRecipientAddress.trim() || userLightningAddress.trim() || 'peer@lightning.wallet'
+      : devProfile.devLightningAddress;
+
+  const activeLightningUri = `lightning:${activeLightningTarget}`;
 
   const handleAmountChange = (text: string) => {
     const cleaned = text.replace(/[^0-9.]/g, '');
@@ -90,7 +136,7 @@ export default function App() {
     }
   };
 
-  const handleUserSignUp = () => {
+  const handleUserSignUp = async () => {
     if (!hasAcceptedTerms) {
       Alert.alert(
         'Agreement Mandatory',
@@ -98,10 +144,31 @@ export default function App() {
       );
       return;
     }
+    await AsyncStorage.setItem(
+      USER_PROFILE_KEY,
+      JSON.stringify({
+        lightningAddress: userLightningAddress.trim(),
+        preferredBank: userPreferredBank.trim(),
+      })
+    );
     setIsRegistered(true);
     Alert.alert(
-      'Account Initialized',
-      'Local cryptographic node profile registered successfully on-device.'
+      'Private Account Initialized',
+      'Your Lightning receiving address and off-ramp preferences are stored privately on your device.'
+    );
+  };
+
+  const handleSaveUserPrivateSettings = async () => {
+    await AsyncStorage.setItem(
+      USER_PROFILE_KEY,
+      JSON.stringify({
+        lightningAddress: userLightningAddress.trim(),
+        preferredBank: userPreferredBank.trim(),
+      })
+    );
+    Alert.alert(
+      'User Privacy Saved',
+      'Your personal P2P Lightning Address and off-ramp institution are saved locally on your device only.'
     );
   };
 
@@ -112,13 +179,13 @@ export default function App() {
     if (!hasHardwareSupport || !isEnrolled) {
       Alert.alert(
         'Hardware Security Required',
-        'Biometric or device passcode authentication is not enrolled on this device. Console access remains locked.'
+        'Biometric or device passcode authentication is not enrolled on this device. Developer Console remains locked.'
       );
       return;
     }
 
     const scanResult = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Verify Identity to Unlock Console',
+      promptMessage: 'Verify Developer Identity to Unlock Console',
       cancelLabel: 'Cancel',
       disableDeviceFallback: false,
     });
@@ -127,11 +194,11 @@ export default function App() {
       setIsConsoleUnlocked(true);
       setActiveTab('CONSOLE');
     } else {
-      Alert.alert('Authentication Failed', 'Console access remains locked.');
+      Alert.alert('Authentication Failed', 'Developer Console remains locked.');
     }
   };
 
-  const handleSaveDeveloperFields = () => {
+  const handleSaveDeveloperFields = async () => {
     if (inputDUNS.length > 0 && inputDUNS.length < 9) {
       Alert.alert(
         'Validation Error',
@@ -139,12 +206,41 @@ export default function App() {
       );
       return;
     }
-    setDevProfile((prev) => ({
-      ...prev,
-      einNumber: inputEIN || prev.einNumber,
-      dunsNumber: inputDUNS || prev.dunsNumber,
-    }));
-    Alert.alert('Local Sync Success', 'Data cache updated. Live balances unaffected.');
+    const updatedDev = {
+      ...devProfile,
+      einNumber: inputEIN.trim() || devProfile.einNumber,
+      dunsNumber: inputDUNS.trim() || devProfile.dunsNumber,
+      devLightningAddress: inputDevLightning.trim() || devProfile.devLightningAddress,
+      devOffRampBank: inputDevBank.trim() || devProfile.devOffRampBank,
+    };
+    setDevProfile(updatedDev);
+    await AsyncStorage.setItem(DEV_CONSOLE_KEY, JSON.stringify(updatedDev));
+    Alert.alert(
+      'Developer Console Updated',
+      'Developer payout Lightning destination and off-ramp institution saved securely.'
+    );
+  };
+
+  const handleRecordSimulatedSettlement = async () => {
+    try {
+      const existing = await AsyncStorage.getItem(LEDGER_STORAGE_KEY);
+      const rows = existing ? JSON.parse(existing) : [];
+      rows.push({
+        txId: `TX_LN_${Date.now()}`,
+        grossAmountUSD: feeBreakdown.grossTotalUSD,
+        developerProfitUSD: feeBreakdown.developerNetProfit,
+        paymentRail: 'BITCOIN_LIGHTNING',
+        timestamp: new Date().toISOString(),
+        dataType: 'LOCAL_STORED',
+      });
+      await AsyncStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(rows));
+      Alert.alert(
+        'Settlement Logged Locally',
+        `Recorded $${feeBreakdown.developerNetProfit.toFixed(2)} developer dividend to your local console ledger.`
+      );
+    } catch {
+      Alert.alert('Ledger Error', 'Could not write local ledger record.');
+    }
   };
 
   const handleExportCsvAction = async () => {
@@ -160,115 +256,13 @@ export default function App() {
 
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert('Copied', 'PayPal.me payment link copied to clipboard.');
+    Alert.alert('Copied', 'Bitcoin Lightning payment URI copied to clipboard.');
   };
 
-  const openPayPalPortal = async () => {
-    if (PAYPAL_BUSINESS_HANDLE === 'YourBusinessHandle') {
-      Alert.alert(
-        'Configuration Required',
-        'Replace YourBusinessHandle in App.tsx with your live PayPal.me username before launching.'
-      );
-      return;
-    }
-    const supported = await Linking.canOpenURL(invoice);
+  const openLightningWallet = async () => {
+    const supported = await Linking.canOpenURL(activeLightningUri);
     if (supported) {
-      await Linking.openURL(invoice);
+      await Linking.openURL(activeLightningUri);
     } else {
-      Alert.alert('Portal Error', 'Unable to open external PayPal.me link.');
-    }
-  };
-
-  useEffect(() => {
-    if (!isRegistered) return;
-    const yieldInterval = setInterval(() => {
-      setTreasury((prev) => {
-        const yieldPerSecond =
-          (prev.totalEcosystemFloatUSD * (prev.annualizedYieldRate / 100)) /
-          (365 * 24 * 3600);
-        return { ...prev, accumulatedYieldUSD: prev.accumulatedYieldUSD + yieldPerSecond };
-      });
-    }, 1000);
-    return () => clearInterval(yieldInterval);
-  }, [isRegistered]);
-
-  if (!isRegistered) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.registrationContainer}>
-          <PulseLogo size={76} />
-          <Text style={styles.registrationTitle}>The Pulse Network</Text>
-          <Text style={styles.registrationSubtitle}>Cross-Platform Node Registry Protocol</Text>
-          <ScrollView style={styles.legalScrollView} nestedScrollEnabled={true}>
-            <Text style={styles.legalBodyText}>{LEGAL_USER_AGREEMENT}</Text>
-          </ScrollView>
-          <TouchableOpacity
-            style={[styles.checkboxRow, hasAcceptedTerms && styles.checkboxActive]}
-            onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
-          >
-            <Text style={styles.checkboxText}>
-              {hasAcceptedTerms
-                ? '✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED'
-                : '☐ Read and accept terms & legal conditions'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.signUpButton} onPress={handleUserSignUp}>
-            <Text style={styles.signUpButtonText}>Initialize Secure Account Sign-Up</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.navHeader}>
-        <PulseLogo size={40} />
-        <View style={styles.tabButtons}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'PAY' && styles.activeTab]}
-            onPress={() => setActiveTab('PAY')}
-          >
-            <Text style={[styles.tabButtonText, activeTab === 'PAY' && styles.activeTabText]}>
-              Pay
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'TREASURY' && styles.activeTab]}
-            onPress={() => setActiveTab('TREASURY')}
-          >
-            <Text style={[styles.tabButtonText, activeTab === 'TREASURY' && styles.activeTabText]}>
-              Yield View
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'CONSOLE' && styles.activeTab]}
-            onPress={() => handleSecureConsoleUnlock()}
-          >
-            <Text style={[styles.tabButtonText, activeTab === 'CONSOLE' && styles.activeTabText]}>
-              Dev Console
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {activeTab === 'PAY' && (
-          <View style={styles.card}>
-            <Text style={styles.title}>⚡ PayPal.me Checkout Gateway</Text>
-            <Text style={styles.amount}>
-              ${feeBreakdown.grossTotalChargedToUser.toFixed(2)} USD
-            </Text>
-
-            <View style={styles.amountInputWrapper}>
-              <Text style={styles.inputLabel}>Enter Base Amount (USD)</Text>
-              <TextInput
-                style={styles.amountInputField}
-                value={amountInput}
-                onChangeText={handleAmountChange}
-                keyboardType="decimal-pad"
-                placeholder="100.00"
-                placeholderTextColor="#4b5563"
-              />
-            </View>
-
+      Alert.alert(
+        'Lightning Wallet Required',

@@ -16,14 +16,18 @@
       "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allow The Pulse Network to use Face ID to unlock the developer console."
+        "NSFaceIDUsageDescription": "Allow The Pulse Network to use Face ID to unlock the developer console.",
+        "LSApplicationQueriesSchemes": [
+          "lightning"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.thepulsenetwork.sovereignapp",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./my-logo.png",
+        "foregroundImage": "./adaptive-icon.png",
         "backgroundColor": "#09090B"
       }
     },
