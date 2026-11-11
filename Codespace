@@ -1,0 +1,8 @@
+npm install
+npx expo install --fix
+npx expo-doctor
+npm run typecheck
+npm run verify:mesh
+git add package.json package-lock.json
+git commit -m "Sync package-lock.json and verify Expo SDK 54 build"
+git push origin main
