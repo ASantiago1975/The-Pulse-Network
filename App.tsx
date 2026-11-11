@@ -22,13 +22,17 @@ const LEGAL_USER_AGREEMENT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS 
 1. DECENTRALIZED INTERFACE INDEMNIFICATION
 The Pulse Network operates strictly as a neutral, decentralized client software interface utilizing peer-to-peer communication routing over open protocols. By finalizing registration, the User explicitly confirms that all spatial intent broadcasts and financial contracts occur strictly within User-to-User bounds. The network architecture and developer maintain zero custodial access or oversight over these processing fields. The User holds the developer entirely free from any civil or criminal liability, financial damages, losses, or legal friction arising from user-to-user agreements.`;
 
+const PAYPAL_BUSINESS_HANDLE = 'YourBusinessHandle';
+
 export default function App() {
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
 
-  const [invoice] = useState<string>('https://paypal.com');
-  const [amountFiat] = useState<number>(100.0);
+  const [amountInput, setAmountInput] = useState<string>('100.00');
+  const [invoice, setInvoice] = useState<string>(
+    `https://paypal.com{PAYPAL_BUSINESS_HANDLE}/107.20`
+  );
   const [loading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
   const [csvPreview, setCsvPreview] = useState<string>('');
@@ -47,7 +51,7 @@ export default function App() {
   });
 
   const [devProfile, setDevProfile] = useState({
-    corporateEntity: 'The Pulse Network LLC (Demo Configuration)',
+    corporateEntity: 'The Pulse Network LLC',
     einNumber: 'PENDING_REGISTRATION',
     dunsNumber: 'PENDING_REGISTRATION',
   });
@@ -56,15 +60,35 @@ export default function App() {
   const [inputDUNS, setInputDUNS] = useState('');
 
   useEffect(() => {
-    const devProfit = amountFiat * 0.03;
-    const surcharge = amountFiat * 0.042;
+    const parsedBase = parseFloat(amountInput);
+    const validBase = Number.isFinite(parsedBase) && parsedBase > 0 ? parsedBase : 0;
+    const devProfit = validBase * 0.03;
+    const surcharge = validBase * 0.042;
+    const grossTotal = validBase + devProfit + surcharge;
+
     setFeeBreakdown({
-      baseAmount: amountFiat,
+      baseAmount: validBase,
       developerNetProfit: devProfit,
       processorSurcharge: surcharge,
-      grossTotalChargedToUser: amountFiat + devProfit + surcharge,
+      grossTotalChargedToUser: grossTotal,
     });
-  }, [amountFiat]);
+
+    setInvoice(
+      grossTotal > 0
+        ? `https://paypal.com{PAYPAL_BUSINESS_HANDLE}/${grossTotal.toFixed(2)}`
+        : `https://paypal.com{PAYPAL_BUSINESS_HANDLE}`
+    );
+  }, [amountInput]);
+
+  const handleAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      setAmountInput(`${parts[0]}.${parts.slice(1).join('')}`);
+    } else {
+      setAmountInput(cleaned);
+    }
+  };
 
   const handleUserSignUp = () => {
     if (!hasAcceptedTerms) {
@@ -136,15 +160,22 @@ export default function App() {
 
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert('Copied', 'Simulation link copied to local clipboard.');
+    Alert.alert('Copied', 'PayPal.me payment link copied to clipboard.');
   };
 
   const openPayPalPortal = async () => {
+    if (PAYPAL_BUSINESS_HANDLE === 'YourBusinessHandle') {
+      Alert.alert(
+        'Configuration Required',
+        'Replace YourBusinessHandle in App.tsx with your live PayPal.me username before launching.'
+      );
+      return;
+    }
     const supported = await Linking.canOpenURL(invoice);
     if (supported) {
       await Linking.openURL(invoice);
     } else {
-      Alert.alert('Portal Error', 'Unable to open external PayPal Business link.');
+      Alert.alert('Portal Error', 'Unable to open external PayPal.me link.');
     }
   };
 
@@ -224,38 +255,20 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {activeTab === 'PAY' && (
           <View style={styles.card}>
-            <View style={styles.demoBanner}>
-              <Text style={styles.demoBannerText}>DEMO MODE • SIMULATED PAYMENT PREVIEW</Text>
-            </View>
-            <Text style={styles.title}>⚡ Simulated Gateway Interface</Text>
+            <Text style={styles.title}>⚡ PayPal.me Checkout Gateway</Text>
             <Text style={styles.amount}>
               ${feeBreakdown.grossTotalChargedToUser.toFixed(2)} USD
             </Text>
-            <View style={styles.qrContainer}>
-              {loading ? (
-                <ActivityIndicator size="large" color="#6366F1" />
-              ) : (
-                <QRCode value={invoice} size={180} color="#FAFAFA" backgroundColor="#18181B" />
-              )}
+
+            <View style={styles.amountInputWrapper}>
+              <Text style={styles.inputLabel}>Enter Base Amount (USD)</Text>
+              <TextInput
+                style={styles.amountInputField}
+                value={amountInput}
+                onChangeText={handleAmountChange}
+                keyboardType="decimal-pad"
+                placeholder="100.00"
+                placeholderTextColor="#4b5563"
+              />
             </View>
-            <View style={styles.feeBreakdownBox}>
-              <Text style={styles.feeText}>
-                [Demo Base Amount]: ${feeBreakdown.baseAmount.toFixed(2)}
-              </Text>
-              <Text style={styles.feeText}>
-                [Simulated Surcharge]: ${feeBreakdown.processorSurcharge.toFixed(2)}
-              </Text>
-              <Text style={styles.devFeeText}>
-                [Projected Net Dividend (3%)]: +${feeBreakdown.developerNetProfit.toFixed(2)}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => copyToClipboard(invoice)}
-            >
-              <Text style={styles.actionButtonText}>Copy Simulation Link</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.paypalPortalButton]}
-              onPress={openPayPalPortal}
-            >
+
