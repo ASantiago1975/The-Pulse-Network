@@ -1,18 +1,22 @@
 // exportLedger.ts - Cross-Platform Relational Local CSV Revenue Exporter
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export type LedgerDataType = 'LOCAL_STORED' | 'SIMULATED_DEMO';
+
 export interface LiveRevenueRow {
   txId: string;
   grossAmountUSD: number;
   developerProfitUSD: number;
   paymentRail: string;
   timestamp: string;
+  dataType?: LedgerDataType;
 }
 
 export interface ExportResult {
   success: boolean;
   csvString: string;
   logMessage: string;
+  isDemoData: boolean;
 }
 
 export class ProductionLedgerExporter {
@@ -25,6 +29,7 @@ export class ProductionLedgerExporter {
   async exportRevenueLogToCSV(): Promise<ExportResult> {
     try {
       const serializedData = await AsyncStorage.getItem(this.STORAGE_KEY);
+      const hasStoredLedger = Boolean(serializedData);
 
       const activeRows: LiveRevenueRow[] = serializedData
         ? (JSON.parse(serializedData) as LiveRevenueRow[])
@@ -35,6 +40,7 @@ export class ProductionLedgerExporter {
               developerProfitUSD: 3.0,
               paymentRail: 'PAYPAL_BUSINESS_DEMO',
               timestamp: '2026-11-10T02:14:00Z',
+              dataType: 'SIMULATED_DEMO',
             },
             {
               txId: 'TX_PULSE_SIM_002',
@@ -42,6 +48,7 @@ export class ProductionLedgerExporter {
               developerProfitUSD: 7.5,
               paymentRail: 'AMAZON_BUSINESS_DEMO',
               timestamp: '2026-11-10T03:45:12Z',
+              dataType: 'SIMULATED_DEMO',
             },
             {
               txId: 'TX_PULSE_SIM_003',
@@ -49,25 +56,31 @@ export class ProductionLedgerExporter {
               developerProfitUSD: 0.46,
               paymentRail: 'BITCOIN_LIGHTNING_DEMO',
               timestamp: '2026-11-10T04:01:55Z',
+              dataType: 'SIMULATED_DEMO',
             },
           ];
 
       const header =
-        'Transaction_ID,Gross_Volume_USD,Developer_Net_Profit_USD,Payment_Rail,Timestamp_UTC\n';
+        'Transaction_ID,Gross_Volume_USD,Developer_Net_Profit_USD,Payment_Rail,Data_Type,Timestamp_UTC\n';
 
       const rows = activeRows
-        .map(
-          (row) =>
-            `${row.txId},${row.grossAmountUSD.toFixed(2)},${row.developerProfitUSD.toFixed(2)},${row.paymentRail},${row.timestamp}`
-        )
+        .map((row) => {
+          const resolvedType: LedgerDataType =
+            row.dataType ?? (hasStoredLedger ? 'LOCAL_STORED' : 'SIMULATED_DEMO');
+          return `${row.txId},${row.grossAmountUSD.toFixed(2)},${row.developerProfitUSD.toFixed(2)},${row.paymentRail},${resolvedType},${row.timestamp}`;
+        })
         .join('\n');
 
       const csvOutput = `${header}${rows}\n`;
+      const modeLabel = hasStoredLedger
+        ? 'local stored records'
+        : 'simulated demo rows (no stored transactions found)';
 
       return {
         success: true,
         csvString: csvOutput,
-        logMessage: `Backup complete. Compiled ${activeRows.length} data rows into CSV format.`,
+        logMessage: `Export complete. Compiled ${activeRows.length} ${modeLabel} into CSV format.`,
+        isDemoData: !hasStoredLedger,
       };
     } catch (error: unknown) {
       const message =
@@ -76,6 +89,7 @@ export class ProductionLedgerExporter {
         success: false,
         csvString: '',
         logMessage: `Export fault: ${message}`,
+        isDemoData: false,
       };
     }
   }
