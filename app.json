@@ -1,26 +1,39 @@
 {
-  "cli": {
-    "version": ">= 9.0.0"
-  },
-  "build": {
-    "production": {
-      "distribution": "store",
-      "android": {
-        "buildType": "app-bundle"
-      },
-      "ios": {
-        "simulator": false
+  "expo": {
+    "name": "The Pulse Network",
+    "slug": "the-pulse-network",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./my-logo.png",
+    "splash": {
+      "image": "./splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#09090B"
+    },
+    "ios": {
+      "bundleIdentifier": "com.thepulsenetwork.sovereignapp",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow The Pulse Network to use Face ID to unlock the developer console."
       }
-    }
-  },
-  "submit": {
-    "production": {
-      "android": {
-        "track": "internal"
-      },
-      "ios": {
-        "target": "store"
+    },
+    "android": {
+      "package": "com.thepulsenetwork.sovereignapp",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./my-logo.png",
+        "backgroundColor": "#09090B"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow The Pulse Network to use Face ID to unlock the developer console."
+        }
+      ]
+    ]
   }
 }
