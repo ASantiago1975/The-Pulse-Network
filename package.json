@@ -12,20 +12,21 @@
     "build:ios": "eas build --platform ios --profile production"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "1.23.1",
-    "expo": "~51.0.0",
-    "expo-clipboard": "~6.0.3",
-    "expo-local-authentication": "~14.0.1",
-    "expo-status-bar": "~1.12.1",
+    "@react-native-async-storage/async-storage": "2.1.0",
+    "expo": "~52.0.0",
+    "expo-clipboard": "~7.0.1",
+    "expo-local-authentication": "~15.0.1",
+    "expo-status-bar": "~2.0.0",
     "nostr-tools": "^2.7.0",
-    "react": "18.2.0",
-    "react-native": "0.74.1",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
     "react-native-qrcode-svg": "^6.3.1",
-    "react-native-svg": "15.2.0"
+    "react-native-svg": "15.8.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@types/react": "~18.2.45",
-    "typescript": "~5.3.3"
+    "@babel/core": "^7.25.2",
+    "@types/react": "~18.3.12",
+    "typescript": "~5.3.3",
+    "ws": "^8.18.0"
   }
 }
