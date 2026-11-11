@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Linking } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  TextInput,
+  Alert,
+  Linking,
+} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as LocalAuthentication from 'expo-local-authentication';
 import QRCode from 'react-native-qrcode-svg';
@@ -15,37 +26,34 @@ export default function App() {
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'PAY' | 'TREASURY' | 'CONSOLE'>('PAY');
-  
+
   const [invoice] = useState<string>('https://paypal.com');
-  const [amountFiat] = useState<number>(100.00);
+  const [amountFiat] = useState<number>(100.0);
   const [loading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
-  const [manualPassphrase, setManualPassphrase] = useState<string>('');
   const [csvPreview, setCsvPreview] = useState<string>('');
 
   const [feeBreakdown, setFeeBreakdown] = useState({
-    baseAmount: 100.00,
-    developerNetProfit: 3.00,      
-    processorSurcharge: 4.20,      
-    grossTotalChargedToUser: 107.20
+    baseAmount: 100.0,
+    developerNetProfit: 3.0,
+    processorSurcharge: 4.2,
+    grossTotalChargedToUser: 107.2,
   });
 
   const [treasury, setTreasury] = useState({
     totalEcosystemFloatUSD: 4500000,
     annualizedYieldRate: 4.5,
-    accumulatedYieldUSD: 1245.80,
+    accumulatedYieldUSD: 1245.8,
   });
 
   const [devProfile, setDevProfile] = useState({
-    corporateEntity: "The Pulse Network LLC (Demo Configuration)",
-    einNumber: "PENDING_REGISTRATION",
-    dunsNumber: "PENDING_REGISTRATION"
+    corporateEntity: 'The Pulse Network LLC (Demo Configuration)',
+    einNumber: 'PENDING_REGISTRATION',
+    dunsNumber: 'PENDING_REGISTRATION',
   });
 
   const [inputEIN, setInputEIN] = useState('');
   const [inputDUNS, setInputDUNS] = useState('');
-
-  const CONSOLE_SECURITY_ROOT = "THE_PULSE_NETWORK_CONSOLE_SECRET_PASS";
 
   useEffect(() => {
     const devProfit = amountFiat * 0.03;
@@ -54,17 +62,23 @@ export default function App() {
       baseAmount: amountFiat,
       developerNetProfit: devProfit,
       processorSurcharge: surcharge,
-      grossTotalChargedToUser: amountFiat + devProfit + surcharge
+      grossTotalChargedToUser: amountFiat + devProfit + surcharge,
     });
   }, [amountFiat]);
 
   const handleUserSignUp = () => {
     if (!hasAcceptedTerms) {
-      Alert.alert("Agreement Mandatory", "You must click to read and accept the Terms of Service to initialize your account.");
+      Alert.alert(
+        'Agreement Mandatory',
+        'You must click to read and accept the Terms of Service to initialize your account.'
+      );
       return;
     }
     setIsRegistered(true);
-    Alert.alert("Account Initialized", "Local cryptographic node profile registered successfully on-device.");
+    Alert.alert(
+      'Account Initialized',
+      'Local cryptographic node profile registered successfully on-device.'
+    );
   };
 
   const handleSecureConsoleUnlock = async () => {
@@ -72,43 +86,41 @@ export default function App() {
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
     if (!hasHardwareSupport || !isEnrolled) {
-      setActiveTab('CONSOLE');
+      Alert.alert(
+        'Hardware Security Required',
+        'Biometric or device passcode authentication is not enrolled on this device. Console access remains locked.'
+      );
       return;
     }
 
     const scanResult = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Verify Identity to Unlock Console',
       cancelLabel: 'Cancel',
-      disableDeviceFallback: false
+      disableDeviceFallback: false,
     });
 
     if (scanResult.success) {
       setIsConsoleUnlocked(true);
       setActiveTab('CONSOLE');
-    }
-  };
-
-  const handleManualPassphraseUnlock = () => {
-    if (manualPassphrase === CONSOLE_SECURITY_ROOT) {
-      setIsConsoleUnlocked(true);
-      setManualPassphrase('');
-      Alert.alert("Access Granted", "Developer parameters unlocked via offline master secret recovery pass.");
     } else {
-      Alert.alert("Access Denied", "Invalid cryptographic passphrase signature token.");
+      Alert.alert('Authentication Failed', 'Console access remains locked.');
     }
   };
 
   const handleSaveDeveloperFields = () => {
     if (inputDUNS.length > 0 && inputDUNS.length < 9) {
-      Alert.alert("Validation Error", "D-U-N-S entry must match standard 9-digit formatting rules.");
+      Alert.alert(
+        'Validation Error',
+        'D-U-N-S entry must match standard 9-digit formatting rules.'
+      );
       return;
     }
-    setDevProfile(prev => ({
+    setDevProfile((prev) => ({
       ...prev,
       einNumber: inputEIN || prev.einNumber,
-      dunsNumber: inputDUNS || prev.dunsNumber
+      dunsNumber: inputDUNS || prev.dunsNumber,
     }));
-    Alert.alert("Local Sync Success", "Data cache updated. Live balances unaffected.");
+    Alert.alert('Local Sync Success', 'Data cache updated. Live balances unaffected.');
   };
 
   const handleExportCsvAction = async () => {
@@ -116,15 +128,15 @@ export default function App() {
     if (result.success) {
       setCsvPreview(result.csvString);
       await Clipboard.setStringAsync(result.csvString);
-      Alert.alert("Ledger Exported", `${result.logMessage}\n\nCopied to clipboard.`);
+      Alert.alert('Ledger Exported', `${result.logMessage}\n\nCopied to clipboard.`);
     } else {
-      Alert.alert("Export Error", result.logMessage);
+      Alert.alert('Export Error', result.logMessage);
     }
   };
 
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
-    Alert.alert("Copied", "Simulation link copied to local clipboard.");
+    Alert.alert('Copied', 'Simulation link copied to local clipboard.');
   };
 
   const openPayPalPortal = async () => {
@@ -132,15 +144,17 @@ export default function App() {
     if (supported) {
       await Linking.openURL(invoice);
     } else {
-      Alert.alert("Portal Error", "Unable to open external PayPal Business link.");
+      Alert.alert('Portal Error', 'Unable to open external PayPal Business link.');
     }
   };
 
   useEffect(() => {
     if (!isRegistered) return;
     const yieldInterval = setInterval(() => {
-      setTreasury(prev => {
-        const yieldPerSecond = (prev.totalEcosystemFloatUSD * (prev.annualizedYieldRate / 100)) / (365 * 24 * 3600);
+      setTreasury((prev) => {
+        const yieldPerSecond =
+          (prev.totalEcosystemFloatUSD * (prev.annualizedYieldRate / 100)) /
+          (365 * 24 * 3600);
         return { ...prev, accumulatedYieldUSD: prev.accumulatedYieldUSD + yieldPerSecond };
       });
     }, 1000);
@@ -157,9 +171,14 @@ export default function App() {
           <ScrollView style={styles.legalScrollView} nestedScrollEnabled={true}>
             <Text style={styles.legalBodyText}>{LEGAL_USER_AGREEMENT}</Text>
           </ScrollView>
-          <TouchableOpacity style={[styles.checkboxRow, hasAcceptedTerms && styles.checkboxActive]} onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}>
+          <TouchableOpacity
+            style={[styles.checkboxRow, hasAcceptedTerms && styles.checkboxActive]}
+            onPress={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+          >
             <Text style={styles.checkboxText}>
-              {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED" : "☐ Read and accept terms & legal conditions"}
+              {hasAcceptedTerms
+                ? '✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED'
+                : '☐ Read and accept terms & legal conditions'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.signUpButton} onPress={handleUserSignUp}>
@@ -175,14 +194,29 @@ export default function App() {
       <View style={styles.navHeader}>
         <PulseLogo size={40} />
         <View style={styles.tabButtons}>
-          <TouchableOpacity style={[styles.tabButton, activeTab === 'PAY' && styles.activeTab]} onPress={() => setActiveTab('PAY')}>
-            <Text style={[styles.tabButtonText, activeTab === 'PAY' && styles.activeTabText]}>Pay</Text>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'PAY' && styles.activeTab]}
+            onPress={() => setActiveTab('PAY')}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'PAY' && styles.activeTabText]}>
+              Pay
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.tabButton, activeTab === 'TREASURY' && styles.activeTab]} onPress={() => setActiveTab('TREASURY')}>
-            <Text style={[styles.tabButtonText, activeTab === 'TREASURY' && styles.activeTabText]}>Yield View</Text>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'TREASURY' && styles.activeTab]}
+            onPress={() => setActiveTab('TREASURY')}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'TREASURY' && styles.activeTabText]}>
+              Yield View
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.tabButton, activeTab === 'CONSOLE' && styles.activeTab]} onPress={() => handleSecureConsoleUnlock()}>
-            <Text style={[styles.tabButtonText, activeTab === 'CONSOLE' && styles.activeTabText]}>Dev Console</Text>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'CONSOLE' && styles.activeTab]}
+            onPress={() => handleSecureConsoleUnlock()}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'CONSOLE' && styles.activeTabText]}>
+              Dev Console
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -190,28 +224,38 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {activeTab === 'PAY' && (
           <View style={styles.card}>
+            <View style={styles.demoBanner}>
+              <Text style={styles.demoBannerText}>DEMO MODE • SIMULATED PAYMENT PREVIEW</Text>
+            </View>
             <Text style={styles.title}>⚡ Simulated Gateway Interface</Text>
-            <Text style={styles.amount}>${feeBreakdown.grossTotalChargedToUser.toFixed(2)} USD</Text>
+            <Text style={styles.amount}>
+              ${feeBreakdown.grossTotalChargedToUser.toFixed(2)} USD
+            </Text>
             <View style={styles.qrContainer}>
-              {loading ? <ActivityIndicator size="large" color="#6366F1" /> : <QRCode value={invoice} size={180} color="#FAFAFA" backgroundColor="#18181B" />}
+              {loading ? (
+                <ActivityIndicator size="large" color="#6366F1" />
+              ) : (
+                <QRCode value={invoice} size={180} color="#FAFAFA" backgroundColor="#18181B" />
+              )}
             </View>
             <View style={styles.feeBreakdownBox}>
-              <Text style={styles.feeText}>[Demo Base Amount]: ${feeBreakdown.baseAmount.toFixed(2)}</Text>
-              <Text style={styles.feeText}>[Simulated Surcharge]: ${feeBreakdown.processorSurcharge.toFixed(2)}</Text>
-              <Text style={styles.devFeeText}>[Projected Net Dividend (3%)]: +${feeBreakdown.developerNetProfit.toFixed(2)}</Text>
+              <Text style={styles.feeText}>
+                [Demo Base Amount]: ${feeBreakdown.baseAmount.toFixed(2)}
+              </Text>
+              <Text style={styles.feeText}>
+                [Simulated Surcharge]: ${feeBreakdown.processorSurcharge.toFixed(2)}
+              </Text>
+              <Text style={styles.devFeeText}>
+                [Projected Net Dividend (3%)]: +${feeBreakdown.developerNetProfit.toFixed(2)}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.actionButton} onPress={() => copyToClipboard(invoice)}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => copyToClipboard(invoice)}
+            >
               <Text style={styles.actionButtonText}>Copy Simulation Link</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.paypalPortalButton]} onPress={openPayPalPortal}>
-              <Text style={styles.actionButtonText}>Launch PayPal Business Portal</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {activeTab === 'TREASURY' && (
-          <View style={styles.card}>
-            <Text style={styles.shieldTitle}>📈 SIMULATED REAL-TIME BALANCES INDEX</Text>
-            <Text style={styles.mainBalance}>${treasury.accumulatedYieldUSD.toFixed(4)}</Text>
-            <Text style={styles.yieldLabel}>💎 Demonstration Value Compounding Tracking</Text>
-            <View style={styles.statsContainer}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.paypalPortalButton]}
+              onPress={openPayPalPortal}
+            >
