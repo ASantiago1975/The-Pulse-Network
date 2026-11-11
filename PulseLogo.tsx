@@ -9,7 +9,7 @@ export default function PulseLogo({ size = 200 }: LogoProps) {
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Image
-        source={require('./assets/my-logo.png')}
+        source={require('./my-logo.png')} // Fixed: Path corrected to reference root repository location directly
         style={[
           styles.image,
           Platform.OS === 'ios' && styles.iosShadow

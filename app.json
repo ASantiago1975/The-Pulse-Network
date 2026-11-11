@@ -5,9 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "icon": "./assets/my-logo.png",
+    "icon": "./my-logo.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#09090B"
     },
@@ -23,7 +23,7 @@
       "package": "com.thepulsenetwork.sovereignapp",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/my-logo.png",
+        "foregroundImage": "./my-logo.png",
         "backgroundColor": "#09090B"
       }
     },

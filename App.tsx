@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, TextInput, Alert, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as LocalAuthentication from 'expo-local-authentication';
 import QRCode from 'react-native-qrcode-svg';
 import PulseLogo from './PulseLogo';
+import { ledgerExporter } from './exportLedger';
 
 const LEGAL_USER_AGREEMENT = `THE PULSE NETWORK — MASTER CROSS-PLATFORM TERMS OF SERVICE
 
@@ -19,6 +20,8 @@ export default function App() {
   const [amountFiat] = useState<number>(100.00);
   const [loading] = useState<boolean>(false);
   const [isConsoleUnlocked, setIsConsoleUnlocked] = useState<boolean>(false);
+  const [manualPassphrase, setManualPassphrase] = useState<string>('');
+  const [csvPreview, setCsvPreview] = useState<string>('');
 
   const [feeBreakdown, setFeeBreakdown] = useState({
     baseAmount: 100.00,
@@ -42,6 +45,8 @@ export default function App() {
   const [inputEIN, setInputEIN] = useState('');
   const [inputDUNS, setInputDUNS] = useState('');
 
+  const CONSOLE_SECURITY_ROOT = "THE_PULSE_NETWORK_CONSOLE_SECRET_PASS";
+
   useEffect(() => {
     const devProfit = amountFiat * 0.03;
     const surcharge = amountFiat * 0.042;
@@ -53,12 +58,20 @@ export default function App() {
     });
   }, [amountFiat]);
 
+  const handleUserSignUp = () => {
+    if (!hasAcceptedTerms) {
+      Alert.alert("Agreement Mandatory", "You must click to read and accept the Terms of Service to initialize your account.");
+      return;
+    }
+    setIsRegistered(true);
+    Alert.alert("Account Initialized", "Local cryptographic node profile registered successfully on-device.");
+  };
+
   const handleSecureConsoleUnlock = async () => {
     const hasHardwareSupport = await LocalAuthentication.hasHardwareAsync();
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
     if (!hasHardwareSupport || !isEnrolled) {
-      setIsConsoleUnlocked(true);
       setActiveTab('CONSOLE');
       return;
     }
@@ -75,9 +88,52 @@ export default function App() {
     }
   };
 
+  const handleManualPassphraseUnlock = () => {
+    if (manualPassphrase === CONSOLE_SECURITY_ROOT) {
+      setIsConsoleUnlocked(true);
+      setManualPassphrase('');
+      Alert.alert("Access Granted", "Developer parameters unlocked via offline master secret recovery pass.");
+    } else {
+      Alert.alert("Access Denied", "Invalid cryptographic passphrase signature token.");
+    }
+  };
+
+  const handleSaveDeveloperFields = () => {
+    if (inputDUNS.length > 0 && inputDUNS.length < 9) {
+      Alert.alert("Validation Error", "D-U-N-S entry must match standard 9-digit formatting rules.");
+      return;
+    }
+    setDevProfile(prev => ({
+      ...prev,
+      einNumber: inputEIN || prev.einNumber,
+      dunsNumber: inputDUNS || prev.dunsNumber
+    }));
+    Alert.alert("Local Sync Success", "Data cache updated. Live balances unaffected.");
+  };
+
+  const handleExportCsvAction = async () => {
+    const result = await ledgerExporter.exportRevenueLogToCSV();
+    if (result.success) {
+      setCsvPreview(result.csvString);
+      await Clipboard.setStringAsync(result.csvString);
+      Alert.alert("Ledger Exported", `${result.logMessage}\n\nCopied to clipboard.`);
+    } else {
+      Alert.alert("Export Error", result.logMessage);
+    }
+  };
+
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
     Alert.alert("Copied", "Simulation link copied to local clipboard.");
+  };
+
+  const openPayPalPortal = async () => {
+    const supported = await Linking.canOpenURL(invoice);
+    if (supported) {
+      await Linking.openURL(invoice);
+    } else {
+      Alert.alert("Portal Error", "Unable to open external PayPal Business link.");
+    }
   };
 
   useEffect(() => {
@@ -106,7 +162,7 @@ export default function App() {
               {hasAcceptedTerms ? "✓ TERMS ACCEPTED • DEVELOPER INDEMNIFIED" : "☐ Read and accept terms & legal conditions"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.signUpButton} onPress={() => setIsRegistered(true)}>
+          <TouchableOpacity style={styles.signUpButton} onPress={handleUserSignUp}>
             <Text style={styles.signUpButtonText}>Initialize Secure Account Sign-Up</Text>
           </TouchableOpacity>
         </View>
@@ -147,6 +203,9 @@ export default function App() {
             <TouchableOpacity style={styles.actionButton} onPress={() => copyToClipboard(invoice)}>
               <Text style={styles.actionButtonText}>Copy Simulation Link</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionButton, styles.paypalPortalButton]} onPress={openPayPalPortal}>
+              <Text style={styles.actionButtonText}>Launch PayPal Business Portal</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -156,39 +215,3 @@ export default function App() {
             <Text style={styles.mainBalance}>${treasury.accumulatedYieldUSD.toFixed(4)}</Text>
             <Text style={styles.yieldLabel}>💎 Demonstration Value Compounding Tracking</Text>
             <View style={styles.statsContainer}>
-              <View style={styles.statRow}><Text style={styles.statKey}>Simulated Pool:</Text><Text style={styles.statValue}>${treasury.totalEcosystemFloatUSD.toLocaleString()}</Text></View>
-              <View style={styles.statRow}><Text style={styles.statKey}>Target Performance APY:</Text><Text style={styles.statValueHost}>{treasury.annualizedYieldRate}%</Text></View>
-              <View style={styles.statRow}><Text style={styles.statKey}>Execution Mode:</Text><Text style={styles.statValueSecured}>TESTING_SANDBOX</Text></View>
-            </View>
-          </View>
-        )}
-
-        {activeTab === 'CONSOLE' && isConsoleUnlocked && (
-          <View style={styles.card}>
-            <Text style={styles.title}>🏛️ Developer Console Sandbox</Text>
-            <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>Corporate Identifier</Text>
-              <Text style={styles.dataValueText}>{devProfile.corporateEntity}</Text>
-            </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>Input Target EIN for Registry Integration</Text>
-              <TextInput style={styles.inputField} value={inputEIN} onChangeText={setInputEIN} placeholder="12-3456789" placeholderTextColor="#4b5563" />
-            </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.inputLabel}>Input Target D-U-N-S for Verification Link</Text>
-              <TextInput style={styles.inputField} value={inputDUNS} onChangeText={setInputDUNS} keyboardType="numeric" placeholder="012345678" placeholderTextColor="#4b5563" />
-            </View>
-            <TouchableOpacity style={styles.saveButton} onPress={() => Alert.alert("Local Sync Success", "Data cache parsed. Live balances unaffected.")}>
-              <Text style={styles.saveButtonText}>Update Local Fields</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09090B' },
-  registrationContainer: { width: '100%', padding: 20, flex: 1, justifyContent: 'center', alignItems: 'center' },
-  registrationTitle: { color: '#FAFAFA', fontSize: 20, fontWeight: 'bold', marginTop: 12 },
